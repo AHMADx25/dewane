@@ -7,3 +7,319 @@
   <h1>Hello 👋</h1>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>ديواني</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+    margin:0;
+    font-family:"Amiri", serif;
+    background: radial-gradient(circle at top,#fff8e7,#e9dcc3);
+}
+
+.container{
+    width:65%;
+    margin:auto;
+    background:#fffdf7;
+    padding:30px;
+    margin-top:20px;
+    border:3px double #8b6f47;
+    box-shadow:0 10px 25px rgba(0,0,0,0.15);
+}
+
+header{
+    text-align:center;
+    font-size:32px;
+    color:#3b2f1c;
+}
+
+/* النموذج */
+#form{
+    display:none;
+    margin-bottom:20px;
+}
+
+button{
+    padding:10px;
+    margin:5px;
+    cursor:pointer;
+}
+
+/* بطاقة القصيدة */
+.poem{
+    border-bottom:1px solid #c9b79c;
+    padding:15px;
+    cursor:pointer;
+    position:relative;
+}
+
+/* الأيقونات يمين أفقي */
+.actions{
+    position:absolute;
+    right:10px;
+    top:10px;
+    display:flex;
+    flex-direction:row;
+    gap:10px;
+    font-size:18px;
+}
+
+.actions span{
+    transition:0.2s;
+}
+
+.actions span:hover{
+    transform:scale(1.2);
+}
+
+/* حذف */
+.delete{
+    color:red;
+    cursor:pointer;
+}
+
+/* تعديل */
+.edit{
+    color:green;
+    cursor:pointer;
+}
+
+/* اسم الشاعر والبحر */
+.meta{
+    position:absolute;
+    left:15px;
+    top:10px;
+    font-size:13px;
+    color:#7a6a4a;
+    line-height:1.6;
+    text-align:left;
+}
+
+/* ⭐ عنوان القصيدة (أسود ناعم جديد) */
+.title{
+    text-align:center;
+    font-size:26px;
+    margin-top:10px;
+    font-weight:500;
+    color:#1f1f1f;   /* أسود أنيق */
+    letter-spacing:0.5px;
+}
+
+/* الشطرين */
+.verse,
+.fullVerse{
+    display:flex;
+    justify-content:center;
+    gap:140px;
+    font-size:36px;
+    margin-top:12px;
+    direction:rtl;
+    line-height:1.9;
+}
+
+.right{ text-align:right; }
+.left{ text-align:left; }
+
+#fullTitle{
+    text-align:center;
+    font-size:36px;
+    font-weight:500;
+    color:#1f1f1f;
+    letter-spacing:0.5px;
+    margin-bottom:20px;
+}
+
+#poemPage{
+    display:none;
+    padding:20px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>✒️ ديواني</header>
+
+<div class="container" id="mainPage">
+
+<button onclick="toggleForm()">➕ إضافة قصيدة</button>
+
+<div id="form">
+
+    <input id="title" placeholder="عنوان القصيدة"><br><br>
+    <input id="poet" placeholder="اسم الشاعر"><br><br>
+
+    <select id="meter">
+        <option value="">اختر البحر</option>
+        <option>الطويل</option>
+        <option>الكامل</option>
+        <option>البسيط</option>
+        <option>الوافر</option>
+        <option>الهزج</option>
+        <option>المتقارب</option>
+        <option>الخفيف</option>
+    </select><br><br>
+
+    <textarea id="content" rows="6" style="width:100%" placeholder="كل سطر = شطر"></textarea><br>
+
+    <button onclick="addPoem()">حفظ</button>
+</div>
+
+<div id="poems"></div>
+
+</div>
+
+<!-- عرض القصيدة -->
+<div id="poemPage" class="container">
+<button onclick="back()">⬅ رجوع</button>
+
+<h2 id="fullTitle"></h2>
+<div id="fullContent"></div>
+</div>
+
+<script>
+
+let poems = JSON.parse(localStorage.getItem("poems")) || [];
+let editIndex = -1;
+
+function save(){
+    localStorage.setItem("poems", JSON.stringify(poems));
+}
+
+function toggleForm(){
+    document.getElementById("form").style.display =
+    (document.getElementById("form").style.display==="block")?"none":"block";
+}
+
+/* إضافة / تعديل */
+function addPoem(){
+
+    let title=document.getElementById("title").value;
+    let poet=document.getElementById("poet").value;
+    let meter=document.getElementById("meter").value || "غير محدد";
+    let content=document.getElementById("content").value;
+
+    let data={title,poet,meter,content};
+
+    if(editIndex===-1){
+        poems.push(data);
+    }else{
+        poems[editIndex]=data;
+        editIndex=-1;
+    }
+
+    save();
+    render();
+
+    document.getElementById("title").value="";
+    document.getElementById("poet").value="";
+    document.getElementById("content").value="";
+}
+
+/* عرض */
+function render(){
+
+    let box=document.getElementById("poems");
+    box.innerHTML="";
+
+    poems.forEach((p,i)=>{
+
+        let lines=p.content.split("\n");
+        let previewLines = lines.slice(0,4);
+
+        let preview = previewLines.map((line,idx)=>{
+            return `<div class="${idx%2===0?'right':'left'}">${line||""}</div>`;
+        }).join("");
+
+        let div=document.createElement("div");
+        div.className="poem";
+
+        div.innerHTML=`
+            <div class="actions">
+                <span class="edit" onclick="editPoem(${i})">✏️</span>
+                <span class="delete" onclick="confirmDelete(${i})">❌</span>
+            </div>
+
+            <div class="meta">
+                ✍️ ${p.poet || "بدون شاعر"}<br>
+                📜 ${p.meter}
+            </div>
+
+            <div class="title">${p.title}</div>
+
+            ${preview}
+        `;
+
+        div.onclick=(e)=>{
+            if(e.target.closest(".actions")) return;
+            openPoem(i);
+        };
+
+        box.appendChild(div);
+    });
+}
+
+/* حذف */
+function confirmDelete(i){
+    if(confirm("هل تريد حذف القصيدة؟")){
+        poems.splice(i,1);
+        save();
+        render();
+    }
+}
+
+/* تعديل */
+function editPoem(i){
+    let p=poems[i];
+
+    document.getElementById("title").value=p.title;
+    document.getElementById("poet").value=p.poet;
+    document.getElementById("meter").value=p.meter;
+    document.getElementById("content").value=p.content;
+
+    editIndex=i;
+    document.getElementById("form").style.display="block";
+}
+
+/* فتح القصيدة */
+function openPoem(i){
+
+    let p=poems[i];
+
+    document.getElementById("mainPage").style.display="none";
+    document.getElementById("poemPage").style.display="block";
+
+    document.getElementById("fullTitle").innerText=p.title;
+
+    let lines=p.content.split("\n");
+    let html="";
+
+    for(let i=0;i<lines.length;i+=2){
+        html+=`
+        <div class="fullVerse">
+            <div class="right">${lines[i]||""}</div>
+            <div class="left">${lines[i+1]||""}</div>
+        </div>`;
+    }
+
+    document.getElementById("fullContent").innerHTML=html;
+}
+
+function back(){
+    document.getElementById("mainPage").style.display="block";
+    document.getElementById("poemPage").style.display="none";
+}
+
+render();
+
+</script>
+
+</body>
+</html>
